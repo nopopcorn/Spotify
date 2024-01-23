@@ -1,1 +1,66 @@
+const axios = require('axios');
+
+async function getSpotifyLink(songName, artistName) {
+  const clientId = '5434d9dd2dfb4576810e66b08bdc3ed2';
+  const clientSecret = '9d0d7a70c0974bfdadbbb371bf2b7374';
+
+  const base64Credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  try {
+    // Step 1: Obtain access token
+    const tokenResponse = await axios.post(
+      'https://accounts.spotify.com/api/token',
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Authorization': `Basic ${base64Credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // Step 2: Search for the track
+    const searchResponse = await axios.get(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(songName + ' ' + artistName)}&type=track`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const trackId = searchResponse.data.tracks.items[0].id;
+
+    // Step 3: Get Spotify link for the track
+    const trackInfoResponse = await axios.get(
+      `https://api.spotify.com/v1/tracks/${trackId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const spotifyLink = trackInfoResponse.data.external_urls.spotify;
+
+    return spotifyLink;
+  } catch (error) {
+    console.error('Error:', error.message);
+    return null;
+  }
+}
+
+// Example usage
+const songName = 'TEST';
+const artistName = 'Artist';
+
+getSpotifyLink(songName, artistName).then(spotifyLink => {
+  if (spotifyLink) {
+    console.log(`Spotify link for ${songName} by ${artistName}: ${spotifyLink}`);
+  } else {
+    console.log(`Spotify link not found for ${songName} by ${artistName}`);
+  }
+});
 
